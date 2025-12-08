@@ -120,7 +120,8 @@ $(document).ready(function() {
 
       result.forEach(function(job) {
         if (job.failed) {
-          $tbody.append('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td>' + (new Date(job.date)) + '</td><td>' + (JSON.stringify(job.error)) + '</td></tr>');
+          var jobId = (typeof job.job_id !== "undefined" && job.job_id !== null && job.job_id !== "") ? job.job_id : "-";
+          $tbody.append('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td>' + jobId + '</td><td>' + (new Date(job.date)) + '</td><td>' + (JSON.stringify(job.error)) + '</td></tr>');
         }
       });
 

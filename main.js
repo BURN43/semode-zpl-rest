@@ -292,6 +292,7 @@ rest.post('/rest/print', function(req, res) {
   job.label_name = label.name;
   job.label_zpl = label.zpl;
   job.data = req.body.data;
+  job.job_id = typeof req.body.job_id !== 'undefined' ? req.body.job_id : null;
 
 
   job.zpl = label.zpl;

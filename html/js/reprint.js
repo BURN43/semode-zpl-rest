@@ -90,7 +90,8 @@ $(document).ready(function() {
 
       result.forEach(function(job) {
         var timeStamp = new Date(job.date);
-        $row = $('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td data-order="' + timeStamp.getTime() + '">' + (timeStamp.toISOString()) + '</td><td>' + (typeof job.error !== "undefined" ? (JSON.stringify(job.error)) : "") + '</td><td><div class="btn-group" role="group"><button class="btn btn-secondary review"><i class="fas fa-fw fa-search"></i></button><button class="btn btn-primary print"><i class="fas fa-fw fa-print"></i></button></div></td></tr>');
+        var jobId = (typeof job.job_id !== "undefined" && job.job_id !== null && job.job_id !== "") ? job.job_id : "-";
+        $row = $('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td>' + jobId + '</td><td data-order="' + timeStamp.getTime() + '">' + (timeStamp.toISOString()) + '</td><td>' + (typeof job.error !== "undefined" ? (JSON.stringify(job.error)) : "") + '</td><td><div class="btn-group" role="group"><button class="btn btn-secondary review"><i class="fas fa-fw fa-search"></i></button><button class="btn btn-primary print"><i class="fas fa-fw fa-print"></i></button></div></td></tr>');
         $row.data("job", job);
         $row.find('.print').click(function() {
           $.ajax({
@@ -146,6 +147,11 @@ $(document).ready(function() {
           }
 
           $('#jobModal').data("job", job);
+          if(jobId !== "-" ){
+            $('#jobModalLabel').text('Job ' + jobId);
+          } else {
+            $('#jobModalLabel').text('Job');
+          }
           $('#jobModal').modal();
         });
         $tbody.append($row);
@@ -157,7 +163,7 @@ $(document).ready(function() {
           [10, 25, 50, -1],
           [10, 25, 50, "All"]
         ],
-        "order": [[ 2, "desc" ]]
+        "order": [[ 3, "desc" ]]
       });
 
     });

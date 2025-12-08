@@ -24,6 +24,7 @@ which you can replace with the following POST-request to `/rest/print`:
 {
     printer:"printer id",
     label:"id of the label",
+    job_id:"optional",
     data : {
       sometext: "hello world"
     }
@@ -51,13 +52,15 @@ download this repo und run `npm start`
 | get                 | /rest/label               | none                                                                                                                          | list of all labels                                                                                    |
 | get                 | /rest/jobs                | none                                                                                                                          | list of all printjobs                                                                                 |
 | get                 | /rest/preview             | ?printer=printer_id&label=label_id(&zpl=...)                                                                                  | generates a preview of the label using [this service](http://labelary.com/service.html#node) as base64|
-| post                | /rest/print               | {printer:"printer_id...",label:"label_id...", data: {...}}                                                                    | actual print                                                                                          |
+| post                | /rest/print               | {printer:"printer_id...",label:"label_id...", data: {...}(,job_id:"...")}                                                     | actual print                                                                                          |
 | post                | /rest/reprint/(:jobid)    | ({printer:"printer_id...", zpl:"..."})                                                                                        | reprint, change printer if wanted or ZPL-code                                                         |
 | post                | /rest/preview             | {printer:"printer_id...",label:"label_id..."(,zpl:"...")}                                                                     | generates a preview of the label using [this service](http://labelary.com/service.html#node) as base64|
 | post                | /rest/printer             | to add : {address:"..",name:"...",density:"..."} for update {_id:"...",address:"..",name:"...",density:"..."}                 | add or update a printer                                                                               |
 | post                | /rest/label               | to add : {name:"...",zpl:"...",width:"...",height:"..."} for update {_id:"...",name:"...",zpl:"...",width:"...",height:"..."} | add or update a label                                                                                 |
 | delete              | /rest/printer/(:printerid)| none                                                                                                                          | removes a printer with the given id                                                                   |
 | delete              | /rest/label/(:labelid)    | none                                                                                                                          | removes a label with the given id                                                                     |
+
+You can optionally supply a `job_id` when calling `/rest/print`. This identifier is stored with the print job and displayed in the dashboard failure list and on the reprint page to make it easier to match REST jobs with your own system.
 
 ## options
 you can edit the config.js with following options:
