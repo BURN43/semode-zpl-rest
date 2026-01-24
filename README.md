@@ -1,6 +1,4 @@
-[take part in this little survey](https://forms.gle/7CUv6PXQuTXQQgsR9)
-
-# zpl-rest
+# zpl-rest (Semode Fork)
 zpl-rest provides the following
 - REST-API to manage labels (written in ZPL), printer and to print these labels
 - a simple graphical user interface for this REST-API
@@ -32,9 +30,18 @@ which you can replace with the following POST-request to `/rest/print`:
 ```
 
 
-## installation and start
+## Installation and Start
 
-download this repo und run `npm start`
+1. Clone this repository
+2. Copy `config.example.json` to `config.json` and set your secret:
+```bash
+cp config.example.json config.json
+# Edit config.json and change the secret!
+```
+3. Install dependencies: `npm install`
+4. Start the server: `npm start`
+
+**Important:** Never commit your `config.json` with the real secret!
 
 ## frontend
 - overview page with statistics
@@ -43,6 +50,14 @@ download this repo und run `npm start`
 ![a screenshot of the reprint page](https://github.com/mrothenbuecher/zpl-rest/raw/master/img/screenshot3.png "Reprint page")
 - label page, with label preview
 ![a screenshot of the frontend](https://github.com/mrothenbuecher/zpl-rest/raw/master/img/screenshot2.png "Label page")
+
+## Semode Additions
+
+This fork includes:
+- 🖼️ **Test Interface**: `html/test-interface.html` - Browser-based label testing with preview
+- 🏷️ **GET /rest/label/:id**: Fetch single label by ID
+- 🗑️ **DELETE /rest/jobs/:id**: Delete individual print jobs
+- 📄 **POST /rest/print-direct**: Direct ZPL printing without label template
 
 ## REST-API
 

@@ -104,8 +104,31 @@ rest.get('/rest/label', function(req, res) {
   res.json(db.label.find())
 });
 
+// get single label by id
+rest.get('/rest/label/(:id)', function(req, res) {
+  if (!req.params.id) {
+    return res.status(400).send('no id was given');
+  }
+  var label = db.label.findOne({ _id: req.params.id });
+  if (!label) {
+    return res.status(404).send('label not found');
+  }
+  res.json(label);
+});
+
 rest.get('/rest/jobs', function(req, res) {
   res.json(db.jobs.find())
+});
+
+// delete job
+rest.delete('/rest/jobs/(:id)', function(req, res) {
+  if (!req.params.id) {
+    return res.status(400).send('no id was given');
+  }
+  var response = db.jobs.remove({
+    _id: req.params.id
+  });
+  res.json(response);
 });
 
 // preview zpl code
@@ -259,6 +282,48 @@ rest.post('/rest/reprint/(:id)', function(req, res) {
 });
 
 // actuall print
+// Direct ZPL print (ohne Label-ID)
+rest.post('/rest/print-direct', function(req, res) {
+  if (!req.body.printer) {
+    return res.status(400).send('no printer id was given');
+  }
+  if (!req.body.zpl) {
+    return res.status(400).send('no zpl was given');
+  }
+
+  var printer = db.printer.findOne({
+    _id: req.body.printer
+  });
+  if (!printer) {
+    return res.status(400).send('given printer id was not valid');
+  }
+
+  var job = {};
+  job.date = new Date();
+  job.printer_id = printer._id;
+  job.printer_name = printer.name;
+  job.printer_address = printer.address;
+  job.printer_ip = printer.address.split(':')[0];
+  job.printer_port = parseInt(printer.address.split(':')[1]);
+  job.label_name = 'Direct ZPL';
+  job.zpl = req.body.zpl;
+  job.job_id = typeof req.body.job_id !== 'undefined' ? req.body.job_id : null;
+
+  console.log((new Date()) + ' direct print job received', job);
+
+  executeRequest(job, function(ret) {
+    job = ret;
+    db.jobs.save(job);
+
+    var broadcast = {};
+    broadcast.source = "job";
+    broadcast.data = job;
+    broadcastMsg(broadcast);
+
+    res.json(job)
+  });
+});
+
 rest.post('/rest/print', function(req, res) {
   var response = {};
   if (!req.body.printer) {
@@ -406,6 +471,68 @@ rest.post('/rest/label', function(req, res) {
   broadcast.data = response;
   broadcastMsg(broadcast);
   res.json(response)
+});
+
+// update label
+rest.put('/rest/label/(:id)', function(req, res) {
+  if (!req.params.id) {
+    return res.status(400).send('no id was given');
+  }
+  
+  var updateData = {
+    name: req.body.name,
+    zpl: req.body.zpl
+  };
+  
+  if (req.body.width) updateData.width = req.body.width;
+  if (req.body.height) updateData.height = req.body.height;
+  
+  var response = db.label.update({
+    _id: req.params.id
+  }, updateData);
+  
+  var broadcast = {};
+  broadcast.source = "label";
+  broadcast.action = "update";
+  broadcast.data = response;
+  broadcastMsg(broadcast);
+  
+  res.json(response);
+});
+
+// update printer
+rest.put('/rest/printer/(:id)', function(req, res) {
+  if (!req.params.id) {
+    return res.status(400).send('no id was given');
+  }
+  
+  var address = req.body.address;
+  if (!address || address == "" || address.split(":").length != 2 || parseInt(address.split(":")[1]) == NaN) {
+    return res.status(400).send('address is not valid');
+  }
+  
+  // Update printer with new data
+  var updateData = {
+    name: req.body.name,
+    address: req.body.address,
+    density: parseInt(req.body.density) || 12  // Convert to integer, default to 12
+  };
+  
+  // Add optional fields if provided
+  if (req.body.width) updateData.width = parseInt(req.body.width);
+  if (req.body.height) updateData.height = parseInt(req.body.height);
+  
+  var response = db.printer.update({
+    _id: req.params.id
+  }, updateData);
+  
+  var broadcast = {};
+  broadcast.source = "printer";
+  broadcast.action = "update";
+  broadcast.data = response;
+  broadcastMsg(broadcast);
+  
+  res.json(response);
 });
 
 // delete printer

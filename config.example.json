@@ -1,0 +1,6 @@
+{
+  "port": 8000,
+  "websocket_port": 8001,
+  "public": true,
+  "secret": "YOUR-SECRET-HERE-CHANGE-IN-PRODUCTION"
+}

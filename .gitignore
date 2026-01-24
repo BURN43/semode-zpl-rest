@@ -1,6 +1,9 @@
 # db
 db/
 
+# Config with secrets
+config.json
+
 # Logs
 logs
 *.log
