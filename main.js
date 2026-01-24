@@ -40,6 +40,19 @@ rest.use(session({
 // JSON
 rest.use(express.json());
 
+// API Key Middleware für Print-Endpunkte
+function requireApiKey(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  
+  // API Key prüfen (falls konfiguriert)
+  if (config.api_key && apiKey !== config.api_key) {
+    console.log('[AUTH] Invalid or missing API key from:', req.ip);
+    return res.status(401).json({ error: 'Unauthorized - Invalid API Key' });
+  }
+  
+  next();
+}
+
 // datastorage stuff
 if (!fs.existsSync(__dirname + '/db')) {
   fs.mkdirSync(__dirname + '/db');
@@ -283,7 +296,7 @@ rest.post('/rest/reprint/(:id)', function(req, res) {
 
 // actuall print
 // Direct ZPL print (ohne Label-ID)
-rest.post('/rest/print-direct', function(req, res) {
+rest.post('/rest/print-direct', requireApiKey, function(req, res) {
   if (!req.body.printer) {
     return res.status(400).send('no printer id was given');
   }
@@ -324,7 +337,7 @@ rest.post('/rest/print-direct', function(req, res) {
   });
 });
 
-rest.post('/rest/print', function(req, res) {
+rest.post('/rest/print', requireApiKey, function(req, res) {
   var response = {};
   if (!req.body.printer) {
     return res.status(400).send('no printer id was given');
