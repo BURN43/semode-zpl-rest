@@ -2,7 +2,13 @@ $(function() {
   // if user is running mozilla then use it's built-in WebSocket
   window.WebSocket = window.WebSocket || window.MozWebSocket;
 
-  var connection = new WebSocket('ws://' + location.hostname + ':' + config.websocket_port);
+  // Auto-detect protocol (wss:// for HTTPS, ws:// for HTTP)
+  var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // Use same port as current page (WebSocket runs on same server now)
+  var wsUrl = protocol + '//' + location.hostname + ':' + location.port;
+  console.log("Connecting to WebSocket:", wsUrl);
+  
+  var connection = new WebSocket(wsUrl);
 
   connection.onopen = function() {
     console.log("WebSocket connected");

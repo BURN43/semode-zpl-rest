@@ -14,7 +14,7 @@ var express = require('express')
 var favicon = require('serve-favicon')
 var session = require('express-session')
 var cors = require('cors')
-
+var basicAuth = require('express-basic-auth')  // ← NEU
 // express stuff
 var rest = express()
 
@@ -52,6 +52,38 @@ function requireApiKey(req, res, next) {
   
   next();
 }
+
+// Basic Auth Middleware für Dashboard (nicht für API!)
+const dashboardAuth = basicAuth({
+  users: { 
+    [config.dashboard_username || 'admin']: config.dashboard_password || 'changeme'
+  },
+  challenge: true,
+  realm: 'zpl-rest Dashboard',
+  unauthorizedResponse: (req) => {
+    return 'Unauthorized - Invalid credentials'
+  }
+});
+
+// Middleware um zu checken ob Route geschützt werden soll
+function protectDashboard(req, res, next) {
+  // API-Endpunkte NICHT schützen
+  if (req.path.startsWith('/rest/')) {
+    return next();
+  }
+  // Dashboard mit Basic Auth schützen (falls konfiguriert)
+  if (config.dashboard_password) {
+    return dashboardAuth(req, res, next);
+  }
+  // Falls kein Password gesetzt = kein Schutz
+  next();
+}
+
+// Basic Auth auf alle Routen anwenden (außer /rest/*)
+rest.use(protectDashboard);
+
+
+
 
 // datastorage stuff
 if (!fs.existsSync(__dirname + '/db')) {
@@ -580,30 +612,24 @@ rest.delete('/rest/label/(:id)', function(req, res) {
   res.json(response);
 });
 
-// starting rest
+// Create HTTP server for Express + WebSocket
+var http = require('http');
+var expressServer = http.createServer(rest);
+
+// Starting REST & WebSocket on SAME port
 if (config.public) {
-  rest.listen(config.port, function() {
-    console.log((new Date()) + " REST is listening on port %d in %s mode", config.port, "public");
+  expressServer.listen(config.port, function() {
+    console.log((new Date()) + " REST & WebSocket listening on port %d in public mode", config.port);
   });
 } else {
-  rest.listen(config.port, 'localhost', function() {
-    console.log((new Date()) + " REST is listening on port %d in %s mode", config.port, "localhost");
+  expressServer.listen(config.port, 'localhost', function() {
+    console.log((new Date()) + " REST & WebSocket listening on port %d in localhost mode", config.port);
   });
 }
 
-// websocket
-var server = http.createServer(function(request, response) {
-  // process HTTP request. Since we're writing just WebSockets
-  // server we don't have to implement anything.
-});
-server.listen(config.websocket_port, function() {
-  console.log((new Date()) + " Websocket is listening on port " +
-    config.websocket_port);
-});
-
-// create the server
+// WebSocket on same HTTP server as Express
 wsServer = new WebSocketServer({
-  httpServer: server
+  httpServer: expressServer
 });
 
 var websockt_clients = [];
