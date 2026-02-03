@@ -14,7 +14,11 @@ var express = require('express')
 var favicon = require('serve-favicon')
 var session = require('express-session')
 var cors = require('cors')
+<<<<<<< HEAD
 var basicAuth = require('express-basic-auth')  // ? NEU
+=======
+var basicAuth = require('express-basic-auth')  // ← NEU
+>>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
 // express stuff
 var rest = express()
 
@@ -53,7 +57,11 @@ function requireApiKey(req, res, next) {
   next();
 }
 
+<<<<<<< HEAD
 // Basic Auth Middleware f�r Dashboard (nicht f�r API!)
+=======
+// Basic Auth Middleware für Dashboard (nicht für API!)
+>>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
 const dashboardAuth = basicAuth({
   users: { 
     [config.dashboard_username || 'admin']: config.dashboard_password || 'changeme'
@@ -65,6 +73,7 @@ const dashboardAuth = basicAuth({
   }
 });
 
+<<<<<<< HEAD
 // Middleware um zu checken ob Route gesch�tzt werden soll
 function protectDashboard(req, res, next) {
   // API-Endpunkte NICHT sch�tzen
@@ -72,6 +81,15 @@ function protectDashboard(req, res, next) {
     return next();
   }
   // Dashboard mit Basic Auth sch�tzen (falls konfiguriert)
+=======
+// Middleware um zu checken ob Route geschützt werden soll
+function protectDashboard(req, res, next) {
+  // API-Endpunkte NICHT schützen
+  if (req.path.startsWith('/rest/')) {
+    return next();
+  }
+  // Dashboard mit Basic Auth schützen (falls konfiguriert)
+>>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
   if (config.dashboard_password) {
     return dashboardAuth(req, res, next);
   }
@@ -79,7 +97,11 @@ function protectDashboard(req, res, next) {
   next();
 }
 
+<<<<<<< HEAD
 // Basic Auth auf alle Routen anwenden (au�er /rest/*)
+=======
+// Basic Auth auf alle Routen anwenden (außer /rest/*)
+>>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
 rest.use(protectDashboard);
 
 

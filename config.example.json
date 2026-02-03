@@ -3,5 +3,7 @@
   "websocket_port": 8001,
   "public": true,
   "secret": "YOUR-SECRET-HERE-CHANGE-IN-PRODUCTION",
-  "api_key": "YOUR-API-KEY-HERE-CHANGE-IN-PRODUCTION"
+  "api_key": "YOUR-API-KEY-HERE-CHANGE-IN-PRODUCTION",
+  "dashboard_username": "admin",
+  "dashboard_password": "YOUR-DASHBOARD-PASSWORD-HERE"
 }
