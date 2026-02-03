@@ -40,11 +40,11 @@ rest.use(session({
 // JSON
 rest.use(express.json());
 
-// API Key Middleware fï¿½r Print-Endpunkte
+// API Key Middleware für Print-Endpunkte
 function requireApiKey(req, res, next) {
   const apiKey = req.headers['x-api-key'];
   
-  // API Key prï¿½fen (falls konfiguriert)
+  // API Key prüfen (falls konfiguriert)
   if (config.api_key && apiKey !== config.api_key) {
     console.log('[AUTH] Invalid or missing API key from:', req.ip);
     return res.status(401).json({ error: 'Unauthorized - Invalid API Key' });
@@ -53,7 +53,7 @@ function requireApiKey(req, res, next) {
   next();
 }
 
-// Basic Auth Middleware fï¿½r Dashboard (nicht fï¿½r API!)
+// Basic Auth Middleware für Dashboard (nicht für API!)
 const dashboardAuth = basicAuth({
   users: { 
     [config.dashboard_username || 'admin']: config.dashboard_password || 'changeme'
@@ -65,13 +65,13 @@ const dashboardAuth = basicAuth({
   }
 });
 
-// Middleware um zu checken ob Route geschï¿½tzt werden soll
+// Middleware um zu checken ob Route geschützt werden soll
 function protectDashboard(req, res, next) {
-  // API-Endpunkte NICHT schï¿½tzen
+  // API-Endpunkte NICHT schützen
   if (req.path.startsWith('/rest/')) {
     return next();
   }
-  // Dashboard mit Basic Auth schï¿½tzen (falls konfiguriert)
+  // Dashboard mit Basic Auth schützen (falls konfiguriert)
   if (config.dashboard_password) {
     return dashboardAuth(req, res, next);
   }
@@ -79,7 +79,7 @@ function protectDashboard(req, res, next) {
   next();
 }
 
-// Basic Auth auf alle Routen anwenden (auï¿½er /rest/*)
+// Basic Auth auf alle Routen anwenden (außer /rest/*)
 rest.use(protectDashboard);
 
 
@@ -612,24 +612,30 @@ rest.delete('/rest/label/(:id)', function(req, res) {
   res.json(response);
 });
 
-// Create HTTP server for Express + WebSocket
-var http = require('http');
-var expressServer = http.createServer(rest);
-
-// Starting REST & WebSocket on SAME port
+// starting rest
 if (config.public) {
-  expressServer.listen(config.port, function() {
-    console.log((new Date()) + " REST & WebSocket listening on port %d in public mode", config.port);
+  rest.listen(config.port, function() {
+    console.log((new Date()) + " REST is listening on port %d in %s mode", config.port, "public");
   });
 } else {
-  expressServer.listen(config.port, 'localhost', function() {
-    console.log((new Date()) + " REST & WebSocket listening on port %d in localhost mode", config.port);
+  rest.listen(config.port, 'localhost', function() {
+    console.log((new Date()) + " REST is listening on port %d in %s mode", config.port, "localhost");
   });
 }
 
-// WebSocket on same HTTP server as Express
+// websocket
+var server = http.createServer(function(request, response) {
+  // process HTTP request. Since we're writing just WebSockets
+  // server we don't have to implement anything.
+});
+server.listen(config.websocket_port, function() {
+  console.log((new Date()) + " Websocket is listening on port " +
+    config.websocket_port);
+});
+
+// create the server
 wsServer = new WebSocketServer({
-  httpServer: expressServer
+  httpServer: server
 });
 
 var websockt_clients = [];

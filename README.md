@@ -1,3 +1,29 @@
+Service-Befehle (für später):
+
+# Service starten
+sudo systemctl start zpl-rest
+
+# Service stoppen
+sudo systemctl stop zpl-rest
+
+# Service neu starten
+sudo systemctl restart zpl-rest
+
+# Status anzeigen
+sudo systemctl status zpl-rest
+
+# Logs anschauen
+sudo journalctl -u zpl-rest -f
+
+# Autostart deaktivieren
+sudo systemctl disable zpl-rest
+
+# Autostart aktivieren
+sudo systemctl enable zpl-rest
+
+
+
+
 # zpl-rest (Semode Fork)
 zpl-rest provides the following
 - REST-API to manage labels (written in ZPL), printer and to print these labels
