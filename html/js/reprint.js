@@ -1,5 +1,18 @@
 var changeTimespan;
 
+// ✅ Deutsche Zeitzone & Datumsformat (DD.MM.YYYY HH:MM:SS)
+function formatGermanDateTime(date) {
+  return date.toLocaleString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
 $(document).ready(function() {
 
   var components = {};
@@ -91,7 +104,23 @@ $(document).ready(function() {
       result.forEach(function(job) {
         var timeStamp = new Date(job.date);
         var jobId = (typeof job.job_id !== "undefined" && job.job_id !== null && job.job_id !== "") ? job.job_id : "-";
-        $row = $('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td>' + jobId + '</td><td data-order="' + timeStamp.getTime() + '">' + (timeStamp.toISOString()) + '</td><td>' + (typeof job.error !== "undefined" ? (JSON.stringify(job.error)) : "") + '</td><td><div class="btn-group" role="group"><button class="btn btn-secondary review"><i class="fas fa-fw fa-search"></i></button><button class="btn btn-primary print"><i class="fas fa-fw fa-print"></i></button></div></td></tr>');
+        
+        // ✅ RFID Status Badge
+        var rfidBadge = "";
+        if (job.has_rfid === true) {
+          if (job.rfid_success === true) {
+            rfidBadge = '<span class="badge badge-success"><i class="fas fa-check"></i> Success</span>';
+          } else if (job.rfid_success === false) {
+            var errorTitle = job.rfid_error ? 'title="' + job.rfid_error + '"' : '';
+            rfidBadge = '<span class="badge badge-danger" ' + errorTitle + '><i class="fas fa-times"></i> Failed</span>';
+          } else {
+            rfidBadge = '<span class="badge badge-warning"><i class="fas fa-question"></i> Unknown</span>';
+          }
+        } else {
+          rfidBadge = '<span class="badge badge-secondary">N/A</span>';
+        }
+        
+        $row = $('<tr><td>' + job.printer_name + '</td><td>' + job.label_name + '</td><td>' + jobId + '</td><td data-order="' + timeStamp.getTime() + '">' + formatGermanDateTime(timeStamp) + '</td><td>' + rfidBadge + '</td><td>' + (typeof job.error !== "undefined" ? (JSON.stringify(job.error)) : "") + '</td><td><div class="btn-group" role="group"><button class="btn btn-secondary review"><i class="fas fa-fw fa-search"></i></button><button class="btn btn-primary print"><i class="fas fa-fw fa-print"></i></button></div></td></tr>');
         $row.data("job", job);
         $row.find('.print').click(function() {
           $.ajax({
@@ -112,6 +141,24 @@ $(document).ready(function() {
         });
 
         $row.find('.review').click(function() {
+
+          // ✅ RFID Status Alert anzeigen
+          var $rfidAlert = $('#rfidAlert');
+          if (job.has_rfid === true) {
+            if (job.rfid_success === true) {
+              $rfidAlert.html('<div class="alert alert-success" role="alert"><i class="fas fa-check-circle"></i> <strong>RFID Success!</strong> Tag wurde erfolgreich codiert.</div>');
+              $rfidAlert.show();
+            } else if (job.rfid_success === false) {
+              var errorMsg = job.rfid_error || 'Unknown error';
+              $rfidAlert.html('<div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-triangle"></i> <strong>RFID Failed!</strong> ' + errorMsg + '</div>');
+              $rfidAlert.show();
+            } else {
+              $rfidAlert.html('<div class="alert alert-warning" role="alert"><i class="fas fa-question-circle"></i> <strong>RFID Status Unknown</strong></div>');
+              $rfidAlert.show();
+            }
+          } else {
+            $rfidAlert.hide();
+          }
 
           $.ajax({
             url: "/rest/preview",
@@ -163,7 +210,7 @@ $(document).ready(function() {
           [10, 25, 50, -1],
           [10, 25, 50, "All"]
         ],
-        "order": [[ 3, "desc" ]]
+        "order": [[ 3, "desc" ]]  // Date column (0-indexed: Printer=0, Label=1, JobID=2, Date=3)
       });
 
     });

@@ -1,4 +1,8 @@
-Service-Befehle (für später):
+Service-Befehle (fï¿½r spï¿½ter):
+
+# =====================================
+# ZPL-REST SERVICE
+# =====================================
 
 # Service starten
 sudo systemctl start zpl-rest
@@ -12,14 +16,64 @@ sudo systemctl restart zpl-rest
 # Status anzeigen
 sudo systemctl status zpl-rest
 
-# Logs anschauen
+# Logs anschauen (live)
 sudo journalctl -u zpl-rest -f
+
+# Logs anschauen (letzte 50 Zeilen)
+sudo journalctl -u zpl-rest -n 50
 
 # Autostart deaktivieren
 sudo systemctl disable zpl-rest
 
 # Autostart aktivieren
 sudo systemctl enable zpl-rest
+
+# =====================================
+# CLOUDFLARED TUNNEL (warehouse-print-api.com)
+# =====================================
+
+# Service starten
+sudo systemctl start cloudflared
+
+# Service stoppen
+sudo systemctl stop cloudflared
+
+# Service neu starten
+sudo systemctl restart cloudflared
+
+# Status anzeigen
+sudo systemctl status cloudflared
+
+# Logs anschauen (live)
+sudo journalctl -u cloudflared -f
+
+# Logs anschauen (letzte 50 Zeilen)
+sudo journalctl -u cloudflared -n 50
+
+# Autostart deaktivieren
+sudo systemctl disable cloudflared
+
+# Autostart aktivieren
+sudo systemctl enable cloudflared
+
+# Tunnel Info anzeigen
+cloudflared tunnel info
+
+# Config anzeigen
+cat /etc/cloudflared/config.yml
+
+# Tunnel Liste anzeigen
+cloudflared tunnel list
+
+# =====================================
+# BEIDE SERVICES NEU STARTEN
+# =====================================
+sudo systemctl restart zpl-rest cloudflared
+
+# =====================================
+# BEIDE SERVICES STATUS
+# =====================================
+sudo systemctl status zpl-rest cloudflared --no-pager
 
 
 

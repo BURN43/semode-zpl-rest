@@ -14,11 +14,7 @@ var express = require('express')
 var favicon = require('serve-favicon')
 var session = require('express-session')
 var cors = require('cors')
-<<<<<<< HEAD
-var basicAuth = require('express-basic-auth')  // ? NEU
-=======
-var basicAuth = require('express-basic-auth')  // ← NEU
->>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
+var basicAuth = require('express-basic-auth')  // NEU
 // express stuff
 var rest = express()
 
@@ -57,11 +53,7 @@ function requireApiKey(req, res, next) {
   next();
 }
 
-<<<<<<< HEAD
-// Basic Auth Middleware f�r Dashboard (nicht f�r API!)
-=======
 // Basic Auth Middleware für Dashboard (nicht für API!)
->>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
 const dashboardAuth = basicAuth({
   users: { 
     [config.dashboard_username || 'admin']: config.dashboard_password || 'changeme'
@@ -73,15 +65,6 @@ const dashboardAuth = basicAuth({
   }
 });
 
-<<<<<<< HEAD
-// Middleware um zu checken ob Route gesch�tzt werden soll
-function protectDashboard(req, res, next) {
-  // API-Endpunkte NICHT sch�tzen
-  if (req.path.startsWith('/rest/')) {
-    return next();
-  }
-  // Dashboard mit Basic Auth sch�tzen (falls konfiguriert)
-=======
 // Middleware um zu checken ob Route geschützt werden soll
 function protectDashboard(req, res, next) {
   // API-Endpunkte NICHT schützen
@@ -89,7 +72,6 @@ function protectDashboard(req, res, next) {
     return next();
   }
   // Dashboard mit Basic Auth schützen (falls konfiguriert)
->>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
   if (config.dashboard_password) {
     return dashboardAuth(req, res, next);
   }
@@ -97,11 +79,7 @@ function protectDashboard(req, res, next) {
   next();
 }
 
-<<<<<<< HEAD
-// Basic Auth auf alle Routen anwenden (au�er /rest/*)
-=======
 // Basic Auth auf alle Routen anwenden (außer /rest/*)
->>>>>>> f8d8507ab48eaceb0c429796bc28774b67be4d79
 rest.use(protectDashboard);
 
 
@@ -457,11 +435,20 @@ rest.post('/rest/print', requireApiKey, function(req, res) {
 
 function executeRequest(job, callback) {
   var client = new Net.Socket();
+  
+  // ✅ Detect if ZPL contains RFID commands
+  var hasRFID = job.zpl.includes('^RS') || job.zpl.includes('^RFW') || job.zpl.includes('^RB');
+  var printerResponseBuffer = '';
+  var responseTimeout = null;
 
   client.setTimeout(5000, function() {
     console.error((new Date()) + " " + "connection timed out");
     job.failed = true;
     job.error = "connection timed out";
+    if (hasRFID) {
+      job.rfid_success = false;
+      job.rfid_error = "Connection timeout";
+    }
     callback(job);
     client.destroy();
   });
@@ -470,26 +457,116 @@ function executeRequest(job, callback) {
     port: job.printer_port,
     host: job.printer_ip
   }, function() {
+    console.log(new Date() + " connected to printer, sending ZPL...");
     client.write(job.zpl);
     job.failed = false;
-    callback(job);
-    client.destroy();
+    
+    // ✅ If RFID: Wait for printer response (with timeout)
+    if (hasRFID) {
+      console.log(new Date() + " RFID detected, waiting for printer feedback...");
+      job.has_rfid = true;
+      job.rfid_success = null; // Unknown until we get feedback
+      
+      // Wait 3 seconds for RFID feedback, then callback
+      responseTimeout = setTimeout(function() {
+        // ⚠️ Timeout = Drucker antwortet nicht ODER kein RFID-Modul!
+        if (job.rfid_success === null) {
+          console.warn(new Date() + " RFID TIMEOUT - Drucker hat kein RFID-Modul oder Tag nicht erkannt");
+          job.rfid_success = false;  // RFID war nicht erfolgreich
+          job.rfid_error = "RFID timeout - Drucker hat kein RFID-Modul oder Tag nicht erkannt";
+          // ✅ ABER: Print war trotzdem erfolgreich! Nur RFID fehlt!
+          // job.failed bleibt false (wurde bereits in connect gesetzt)
+          console.log(new Date() + " Print erfolgreich, ABER RFID fehlgeschlagen");
+        }
+        callback(job);
+        client.destroy();
+      }, 3000);
+      
+    } else {
+      // No RFID: callback immediately
+      console.log(new Date() + " No RFID detected, immediate callback");
+      job.has_rfid = false;
+      job.rfid_success = null; // N/A for non-RFID labels
+      callback(job);
+      client.destroy();
+    }
   });
 
   client.on('error', function(err) {
     console.error((new Date()) + " " + err);
     job.failed = true;
     job.error = err;
+    if (hasRFID) {
+      job.rfid_success = false;
+      job.rfid_error = err.toString();
+    }
+    if (responseTimeout) clearTimeout(responseTimeout);
     callback(job);
     client.destroy();
   });
 
   client.on('data', function(chunk) {
-    job.printer_data = chunk;
-    console.log(new Date() + " received data from printer:", chunk);
+    printerResponseBuffer += chunk.toString();
+    job.printer_data = printerResponseBuffer;
+    console.log(new Date() + " received data from printer:", chunk.toString());
+    
+    // ✅ Parse RFID response if applicable
+    if (hasRFID) {
+      // Check for RFID errors (Zebra sends alerts for RFID failures)
+      // Common RFID error codes: RFID TAG NOT FOUND, RFID WRITE ERROR, etc.
+      var hasRFIDError = 
+        printerResponseBuffer.includes('RFID') && 
+        (printerResponseBuffer.includes('ERROR') || 
+         printerResponseBuffer.includes('FAIL') ||
+         printerResponseBuffer.includes('NOT FOUND') ||
+         printerResponseBuffer.includes('TIMEOUT'));
+      
+      if (hasRFIDError) {
+        console.error(new Date() + " RFID ERROR detected in printer response!");
+        job.rfid_success = false;
+        job.rfid_error = printerResponseBuffer.trim();
+        job.failed = true;
+        job.error = "RFID encoding failed";
+        
+        // Clear timeout and callback immediately
+        if (responseTimeout) clearTimeout(responseTimeout);
+        callback(job);
+        client.destroy();
+      } else {
+        // Check if we got a positive response (e.g., tag written successfully)
+        // Some printers send confirmation messages
+        var hasRFIDSuccess = 
+          printerResponseBuffer.includes('RFID') && 
+          printerResponseBuffer.includes('SUCCESS');
+        
+        if (hasRFIDSuccess) {
+          console.log(new Date() + " RFID SUCCESS confirmed by printer!");
+          job.rfid_success = true;
+          
+          // Clear timeout and callback immediately
+          if (responseTimeout) clearTimeout(responseTimeout);
+          callback(job);
+          client.destroy();
+        } else if (printerResponseBuffer.length > 0) {
+          // ✅ Drucker hat geantwortet, aber kein expliziter Success oder Error
+          // Zebra Drucker antworten normalerweise nur bei Errors!
+          // Wenn Response da ist und kein Error → wahrscheinlich OK
+          console.log(new Date() + " RFID: Drucker antwortet, kein Error erkannt - vermutlich OK");
+          job.rfid_success = true;
+          
+          // Clear timeout and callback immediately
+          if (responseTimeout) clearTimeout(responseTimeout);
+          callback(job);
+          client.destroy();
+        }
+        // Otherwise: wait for timeout (will be treated as failure)
+      }
+    }
   });
 
-  client.on('end', function() {});
+  client.on('end', function() {
+    console.log(new Date() + " printer connection ended");
+  });
 }
 
 // create or update printer
